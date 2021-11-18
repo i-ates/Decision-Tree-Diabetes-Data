@@ -9,10 +9,13 @@ import datetime  # The library we use to calculate the time difference between a
 import decisionTree
 
 
-def kFoldCrossValidationClasification(df,pre = False,post = False):
+def kFoldCrossValidationClasification(df, pre=False):
     # splitNum = rounded result of to division of sample count to 5. It is  size of each 5 part
     splitNum = df.shape[0] // 5
-    avgAccKnn = 0  # avarage result of knn classification
+    avgAcc = 0  # avarage result of knn classification
+    avgPrecision = 0
+    avgF1Score = 0
+    avgRecall = 0
     avgCompileTimeKnn = 0  # avarage compile time for knn classification
 
     # for each splitted part of dataFrame
@@ -31,28 +34,38 @@ def kFoldCrossValidationClasification(df,pre = False,post = False):
 
         truePredictCount = 0
 
-        dt = decisionTree.Decision_Tree(1e-16, ["x[" + str(i) + "]" for i in range(16)])
+        dt = decisionTree.DecisionTree(1e-16, ["x[" + str(i) + "]" for i in range(16)])
         X = trainData[:, :-1]
         y = trainData[:, -1]
-        dt.fit(X, y, pre, post)
         start_time = datetime.datetime.now()
-
+        dt.fit(X, y, pre)
         # for each sample in test Data
         testX = testData[:, :-1]
         testy = testData[:, -1]
-        acc = dt.accuracy(testX,testy)
-
+        acc = dt.accuracy(testX, testy)
+        TP = acc[1]
+        FP = acc[3]
+        FN = acc[4]
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        f1score = (2 * (recall * precision)) / (recall + precision)
+        avgPrecision = avgPrecision + precision
+        avgRecall = avgRecall + recall
+        avgF1Score = avgF1Score + f1score
         end_time = datetime.datetime.now()
         avgCompileTimeKnn = avgCompileTimeKnn + ((end_time - start_time).total_seconds() * 1000)
-        print("Fold " + str(i) + " accurancy:" + str(
-            acc))
+
+        print()
         # add accuracy to average accuracy
-        avgAccKnn = avgAccKnn + acc
+        avgAcc = avgAcc + acc[0]
 
     print("")
     print("")
     print("////////////////////////")
-    print("Avarage Acc = " + str(avgAccKnn / 5))
+    print("Avarage Acc = " + str(avgAcc / 5))
+    print("Avarage Precision = " + str(avgPrecision/5))
+    print("Avarage Recall = " + str(avgRecall/5))
+    print("Avarage F1Score = " + str(avgF1Score/5))
     print("Average Run Time = " + str(avgCompileTimeKnn / 5))
     print("////////////////////////")
     print("")
