@@ -69,8 +69,7 @@ class DecisionTree:
         self.numsFea = xTrain.shape[1]
         self.numsSam = xTrain.shape[0]
         self.root = dict()  # this is the decision tree
-        self.graph = dict()  # this is convenient for visualizing the tree
-        self.maxdepth = self.buildTree(xTrain, yTrain, 0, self.graph, self.root)
+        self.maxdepth = self.buildTree(xTrain, yTrain, 0, self.root)
 
 
     def vote(self, y):
@@ -101,6 +100,9 @@ class DecisionTree:
     def accuracy(self, X, y):
         pred = self.predict(X)
         acc = (pred == y).sum() / y.shape[0]
+        for i in range(len(y)):
+            if y[i] != pred[i]:
+                print(X[i])
         TP = 0
         TN = 0
         FP = 0
@@ -169,11 +171,10 @@ class DecisionTree:
         bestGain, bestF, bestPoint = gainList[0]
         return bestGain, bestF, bestPoint
 
-    def buildTree(self, X, y, depth, graph=None, root=None):
+    def buildTree(self, X, y, depth, root=None):
         if len(np.unique(y)) == len(y):
             # return the label at first index
             root['leaf'] = np.asscalar(y[0])
-            graph['label:' + str(np.asscalar(y[0]))] = 'leaf'
             return depth + 1
         else:
             if self.prun == True:
@@ -184,7 +185,6 @@ class DecisionTree:
             if isPrun:
                 beforePruVoteY = self.vote(y)
                 root['leaf'] = np.asscalar(beforePruVoteY)
-                graph['label:' + str(np.asscalar(beforePruVoteY))] = 'leaf'
                 return depth + 1
             else:
                 bestGain, bestF, bestPoint = self.splittingPoint(X, y)
@@ -192,16 +192,7 @@ class DecisionTree:
                     # return the majority
                     voteY = self.vote(y)
                     root['leaf'] = np.asscalar(voteY)
-                    graph['label:' + str(np.asscalar(voteY))] = 'leaf'
                     return depth + 1
-
-                key = self.feature[bestF] + "<=" + str(bestPoint)
-                # graph painting dict
-                graph[key] = dict()
-                less = dict()
-                great = dict()
-                graph[key]['yes'] = less
-                graph[key]['no'] = great
 
                 # tree structure
                 root['val'] = bestPoint
@@ -215,10 +206,10 @@ class DecisionTree:
                 root['right'] = dict()
                 root['right']['leaf'] = np.asscalar(
                     self.vote(y[rightIndex]))  # the right tree choose the majority as label
-                ldepth = self.buildTree(X[leftIndex], y[leftIndex], depth + 1, less, left)
+                ldepth = self.buildTree(X[leftIndex], y[leftIndex], depth + 1, left)
 
                 root.pop('right')
                 right = dict()
                 root['right'] = right
-                rdepth = self.buildTree(X[rightIndex], y[rightIndex], depth + 1, great, right)
+                rdepth = self.buildTree(X[rightIndex], y[rightIndex], depth + 1, right)
                 return max(ldepth, rdepth)

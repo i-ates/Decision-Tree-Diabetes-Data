@@ -39,6 +39,7 @@ def kFoldCrossValidationClasification(df, pre=False):
         y = trainData[:, -1]
         start_time = datetime.datetime.now()
         dt.fit(X, y, pre)
+        print(dt.root)
         # for each sample in test Data
         testX = testData[:, :-1]
         testy = testData[:, -1]
