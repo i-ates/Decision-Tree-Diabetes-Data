@@ -6,44 +6,46 @@ import datetime  # The library we use to calculate the time difference between a
 # the dataFrame in to 5 part and takes them respectively each part to test data and take rest of them to train data.
 # It calculates the prediction and get accuracy for each part and and avarage accuracy for decision tree.
 # After each part calculations it prints the results.
-import decisionTree
 
 
-def kFoldCrossValidationClasification(df, pre=False):
+import id3
+import node
+
+
+def kFoldCrossValidationClasification(df):
     # splitNum = rounded result of to division of sample count to 5. It is  size of each 5 part
-    splitNum = df.shape[0] // 5
-    avgAcc = 0  # avarage result of knn classification
+    splitNum = len(df) // 5
+    avgAcc = 0
+    avgAccPrun = 0
     avgPrecision = 0
     avgF1Score = 0
     avgRecall = 0
-    avgCompileTimeKnn = 0  # avarage compile time for knn classification
-
-    # for each splitted part of dataFrame
+    avgPrecisionPrun = 0
+    avgRecallPrun = 0
+    avgF1ScorePrun = 0
+    avgCompileTime = 0
+    avgCompileTimePrun = 0
     for i in range(0, 5):
-        trainData = np.copy(df)  # copy of DataFrame
-        testData = np.empty(shape=(splitNum, df.shape[1]), dtype=int)  # creating test Data array
+        trainDict = df.copy()
+        testData = []
         # copying samples to test Data and add their indexes to indexList
         for y in range(splitNum * i, splitNum * (i + 1)):
-            if i != 0:
-                testData[y - (splitNum * i)] = df[y]
-            else:
-                testData[y] = df[y]
+            testData.append(df[y])
         # for  j in range to reversed for loop, delete samples in train Data which are added to test Data
         for j in range(splitNum - 1, -1, -1):
-            trainData = np.delete(trainData, (j + (splitNum * i)), 0)
+            del trainDict[j + (splitNum * i)]
 
-        truePredictCount = 0
 
-        dt = decisionTree.DecisionTree(1e-16, ["x[" + str(i) + "]" for i in range(16)])
-        X = trainData[:, :-1]
-        y = trainData[:, -1]
-        start_time = datetime.datetime.now()
-        dt.fit(X, y, pre)
-        print(dt.root)
-        # for each sample in test Data
-        testX = testData[:, :-1]
-        testy = testData[:, -1]
-        acc = dt.accuracy(testX, testy)
+        validationSize = len(trainDict)//4
+        trainData = trainDict[0:len(trainDict)-validationSize]
+        validationData = trainDict[len(trainDict)-validationSize:]
+
+        startTime = datetime.datetime.now()
+        tree = id3.ID3(trainData ,0)
+        acc = id3.test(tree, testData)
+        endTime = datetime.datetime.now()
+        avgCompileTime = avgCompileTime + ((endTime - startTime).total_seconds() * 1000)
+
         TP = acc[1]
         FP = acc[3]
         FN = acc[4]
@@ -53,12 +55,30 @@ def kFoldCrossValidationClasification(df, pre=False):
         avgPrecision = avgPrecision + precision
         avgRecall = avgRecall + recall
         avgF1Score = avgF1Score + f1score
-        end_time = datetime.datetime.now()
-        avgCompileTimeKnn = avgCompileTimeKnn + ((end_time - start_time).total_seconds() * 1000)
+        avgAcc = acc[0] + avgAcc
+        print(acc[0])
 
+        startTime = datetime.datetime.now()
+
+        treePruned = id3.prune(tree, validationData)
+        accPrun= id3.test(treePruned,testData)
+        endTime = datetime.datetime.now()
+        avgCompileTimePrun = avgCompileTimePrun + ((endTime - startTime).total_seconds() * 1000)
+        TP = accPrun[1]
+        FP = accPrun[3]
+        FN = accPrun[4]
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        f1score = (2 * (recall * precision)) / (recall + precision)
+        avgPrecisionPrun = avgPrecisionPrun + precision
+        avgRecallPrun = avgRecallPrun + recall
+        avgF1ScorePrun = avgF1ScorePrun + f1score
+        print(acc[0])
+        avgAccPrun = accPrun[0] + avgAccPrun
         print()
-        # add accuracy to average accuracy
-        avgAcc = avgAcc + acc[0]
+
+        start_time = datetime.datetime.now()
+        # for each sample in test Dat
 
     print("")
     print("")
@@ -67,7 +87,13 @@ def kFoldCrossValidationClasification(df, pre=False):
     print("Avarage Precision = " + str(avgPrecision/5))
     print("Avarage Recall = " + str(avgRecall/5))
     print("Avarage F1Score = " + str(avgF1Score/5))
-    print("Average Run Time = " + str(avgCompileTimeKnn / 5))
+    print("Average Run Time = " + str(avgCompileTime / 5))
+    print("////////////////////////")
+    print("Avarage Acc Prun = " + str(avgAccPrun / 5))
+    print("Avarage Precision Prun= " + str(avgPrecisionPrun / 5))
+    print("Avarage Recall Prun= " + str(avgRecallPrun / 5))
+    print("Avarage F1Score Prun= " + str(avgF1ScorePrun / 5))
+    print("Average Run Time Prun= " + str(avgCompileTimePrun / 5))
     print("////////////////////////")
     print("")
     print("")
